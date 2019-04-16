@@ -11,8 +11,7 @@ import Button from "@material-ui/core/Button";
 import AppBar from "@material-ui/core/AppBar";
 import Tabs from "@material-ui/core/Tabs";
 import Tab from "@material-ui/core/Tab";
-
-// import { withStyles } from '@material-ui/styles';
+import axios from "axios";
 
 const styles = theme => ({
   root: {
@@ -32,7 +31,7 @@ class Signin extends Component {
     showPassword: false,
     registerShowPassword: false,
     registerComfirmShowPassword: false,
-    value: false,
+    value: 0,
     userOrEmail: "",
     password: "",
     registrationName: "",
@@ -40,7 +39,8 @@ class Signin extends Component {
     registrationAddres: "",
     registrationPhone: "",
     registrationPassword: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    authMessageDisplay: "false"
   };
 
   handleClickShowPassword = () => {
@@ -49,7 +49,7 @@ class Signin extends Component {
 
   handleClickRegisterShowPassword = () => {
     this.setState(state => ({
-        registerShowPassword: !state.registerShowPassword
+      registerShowPassword: !state.registerShowPassword
     }));
   };
 
@@ -66,6 +66,68 @@ class Signin extends Component {
   handleChangeRegLogBtn = (event, value) => {
     this.setState({ value });
     console.log(value);
+  };
+
+  checkRegisterIsFilled = () => {
+    return (
+      this.state.value === 1 &&
+      (this.state.registrationName === "" ||
+        this.state.registrationEmail === "" ||
+        this.state.registrationAddres === "" ||
+        this.state.registrationPhone === "" ||
+        this.state.registrationPassword === "" ||
+        this.state.confirmPassword === "")
+    );
+  };
+
+  checkLoginIsFilled = () => {
+    return (
+      this.state.value === 0 &&
+      (this.state.userOrEmail === "" || this.state.password === "")
+    );
+  };
+
+  loginRegisterBtnSubmit = () => {
+    if (this.state.value === 0) {
+      const payload = {
+        usernameOrEmail: this.state.userOrEmail,
+        password: this.state.password
+      };
+      axios
+        .post("http://localhost:8081/api/auth/signin", payload)
+        .then(res => {
+          console.log(res.status);
+        })
+        .catch(error => {
+          if (error.response.status === 401) {
+            alert("Username or password is incorect");
+          }
+        });
+
+      console.log(payload);
+    } else {
+      const payload = {
+        username: this.state.registrationName,
+        email: this.state.registrationEmail,
+        address: this.state.registrationAddres,
+        phoneNumber: this.state.registrationPhone,
+        password: this.state.registrationPassword,
+        confirmPassword: this.state.confirmPassword
+      };
+      console.log(payload);
+      axios
+        .post("http://localhost:8081/api/auth/signup", payload)
+        .then(res => {
+          console.log(res.status);
+          alert("Account created");
+          this.setState({ value: 0 });
+        })
+        .catch(error => {
+          if (error.response.status === 400) {
+            alert("Username or email already exists");
+          }
+        });
+    }
   };
 
   login = () => [
@@ -94,11 +156,7 @@ class Signin extends Component {
               aria-label="Toggle password visibility"
               onClick={this.handleClickShowPassword}
             >
-              {this.state.showPassword ? (
-                <VisibilityOff />
-              ) : (
-                <Visibility />
-              )}
+              {this.state.showPassword ? <VisibilityOff /> : <Visibility />}
             </IconButton>
           </InputAdornment>
         )
@@ -220,10 +278,15 @@ class Signin extends Component {
           id={this.state.value === 0 ? "sign-btn_id" : "register_btn_id"}
           variant="contained"
           className={classNames(classes.login_btn)}
-        //   disabled
+          disabled={this.checkLoginIsFilled() || this.checkRegisterIsFilled()}
+          onClick={this.loginRegisterBtnSubmit}
         >
           {this.state.value === 0 ? "Login" : "Register"}
         </Button>
+
+        {this.state.authMessageDisplay === true ? (
+          <span>Wrong username or password!</span>
+        ) : null}
       </div>
     );
   }
